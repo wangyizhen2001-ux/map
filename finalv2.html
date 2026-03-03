@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>全国城市系数散点联动图</title>
+    <script src="https://fastly.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #f8f9fa; overflow: hidden; font-family: sans-serif; }
+        #container { display: flex; width: 100vw; height: 100vh; }
+        
+        #sidebar { 
+            width: 400px; 
+            height: 100%; 
+            background: #fff; 
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1); 
+            z-index: 10; 
+            overflow-y: auto; 
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        thead { background: #f1f3f5; position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+        tr { cursor: pointer; transition: background 0.2s; }
+        tr:hover { background: #f0f8ff; }
+        .active-row { background: #e6f2ff !important; }
+        
+        .color-dot {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;
+        }
+
+        #main { flex: 1; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>省份</th>
+                        <th>城市</th>
+                        <th>分类</th>
+                        <th>系数</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div id="main"></div>
+    </div>
+
+    <script>
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+        
+        var data = [{"name": "上海", "value": [121.47, 31.23, 1.0], "info": "上海上海 (城市分类: 1, 系数: 1.00)"}, {"name": "北京", "value": [116.4, 39.9, 1.0], "info": "北京北京 (城市分类: 1, 系数: 1.00)"}, {"name": "广州", "value": [113.26, 23.13, 1.0], "info": "广东省广州 (城市分类: 1, 系数: 1.00)"}, {"name": "深圳", "value": [114.06, 22.54, 1.0], "info": "广东省深圳 (城市分类: 1, 系数: 1.00)"}, {"name": "重庆", "value": [106.55, 29.56, 0.9], "info": "重庆重庆 (城市分类: 2-1, 系数: 0.90)"}, {"name": "杭州", "value": [120.15, 30.27, 0.9], "info": "浙江省杭州 (城市分类: 2-1, 系数: 0.90)"}, {"name": "天津", "value": [117.2, 39.13, 0.9], "info": "天津天津 (城市分类: 2-1, 系数: 0.90)"}, {"name": "成都", "value": [104.06, 30.66, 0.9], "info": "四川省成都 (城市分类: 2-1, 系数: 0.90)"}, {"name": "西安", "value": [108.94, 34.26, 0.9], "info": "陕西省西安 (城市分类: 2-1, 系数: 0.90)"}, {"name": "青岛", "value": [120.38, 36.07, 0.9], "info": "山东省青岛 (城市分类: 2-1, 系数: 0.90)"}, {"name": "南京", "value": [118.78, 32.06, 0.9], "info": "江苏省南京 (城市分类: 2-1, 系数: 0.90)"}, {"name": "三亚", "value": [109.51, 18.25, 0.9], "info": "海南省三亚 (城市分类: 2-1, 系数: 0.90)"}, {"name": "宁波", "value": [121.54, 29.86, 0.85], "info": "浙江省宁波 (城市分类: 2-2, 系数: 0.85)"}, {"name": "湖州", "value": [120.09, 30.89, 0.85], "info": "浙江省湖州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "温州", "value": [120.7, 27.99, 0.85], "info": "浙江省温州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "嘉兴", "value": [120.75, 30.75, 0.85], "info": "浙江省嘉兴 (城市分类: 2-2, 系数: 0.85)"}, {"name": "金华", "value": [119.64, 29.08, 0.85], "info": "浙江省金华 (城市分类: 2-2, 系数: 0.85)"}, {"name": "绍兴", "value": [120.58, 30.0, 0.85], "info": "浙江省绍兴 (城市分类: 2-2, 系数: 0.85)"}, {"name": "丽江", "value": [100.22, 26.86, 0.85], "info": "云南省丽江 (城市分类: 2-2, 系数: 0.85)"}, {"name": "昆明", "value": [102.71, 25.04, 0.85], "info": "云南省昆明 (城市分类: 2-2, 系数: 0.85)"}, {"name": "乌鲁木齐", "value": [87.62, 43.82, 0.85], "info": "新疆维吾尔自治区乌鲁木齐 (城市分类: 2-2, 系数: 0.85)"}, {"name": "拉萨", "value": [91.11, 29.65, 0.85], "info": "西藏拉萨 (城市分类: 2-2, 系数: 0.85)"}, {"name": "太原", "value": [112.55, 37.87, 0.85], "info": "山西省太原 (城市分类: 2-2, 系数: 0.85)"}, {"name": "济南", "value": [117.0, 36.65, 0.85], "info": "山东省济南 (城市分类: 2-2, 系数: 0.85)"}, {"name": "西宁", "value": [101.78, 36.62, 0.85], "info": "青海省西宁 (城市分类: 2-2, 系数: 0.85)"}, {"name": "银川", "value": [106.23, 38.48, 0.85], "info": "宁夏银川 (城市分类: 2-2, 系数: 0.85)"}, {"name": "呼和浩特", "value": [111.75, 40.84, 0.85], "info": "内蒙古自治区呼和浩特 (城市分类: 2-2, 系数: 0.85)"}, {"name": "沈阳", "value": [123.43, 41.8, 0.85], "info": "辽宁省沈阳 (城市分类: 2-2, 系数: 0.85)"}, {"name": "大连", "value": [121.61, 38.91, 0.85], "info": "辽宁省大连 (城市分类: 2-2, 系数: 0.85)"}, {"name": "南昌", "value": [115.86, 28.68, 0.85], "info": "江西省南昌 (城市分类: 2-2, 系数: 0.85)"}, {"name": "南通", "value": [120.89, 31.98, 0.85], "info": "江苏省南通 (城市分类: 2-2, 系数: 0.85)"}, {"name": "苏州", "value": [120.58, 31.3, 0.85], "info": "江苏省苏州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "无锡", "value": [120.31, 31.49, 0.85], "info": "江苏省无锡 (城市分类: 2-2, 系数: 0.85)"}, {"name": "常州", "value": [119.97, 31.81, 0.85], "info": "江苏省常州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "长春", "value": [125.32, 43.82, 0.85], "info": "吉林省长春 (城市分类: 2-2, 系数: 0.85)"}, {"name": "长沙", "value": [112.94, 28.23, 0.85], "info": "湖南省长沙 (城市分类: 2-2, 系数: 0.85)"}, {"name": "武汉", "value": [114.3, 30.6, 0.85], "info": "湖北省武汉 (城市分类: 2-2, 系数: 0.85)"}, {"name": "哈尔滨", "value": [126.63, 45.75, 0.85], "info": "黑龙江省哈尔滨 (城市分类: 2-2, 系数: 0.85)"}, {"name": "郑州", "value": [113.66, 34.75, 0.85], "info": "河南省郑州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "石家庄", "value": [114.51, 38.04, 0.85], "info": "河北省石家庄 (城市分类: 2-2, 系数: 0.85)"}, {"name": "海口", "value": [110.33, 20.02, 0.85], "info": "海南省海口 (城市分类: 2-2, 系数: 0.85)"}, {"name": "贵阳", "value": [106.63, 26.65, 0.85], "info": "贵州省贵阳 (城市分类: 2-2, 系数: 0.85)"}, {"name": "南宁", "value": [108.37, 22.82, 0.85], "info": "广西壮族自治区南宁 (城市分类: 2-2, 系数: 0.85)"}, {"name": "珠海", "value": [113.57, 22.27, 0.85], "info": "广东省珠海 (城市分类: 2-2, 系数: 0.85)"}, {"name": "东莞", "value": [113.75, 23.02, 0.85], "info": "广东省东莞 (城市分类: 2-2, 系数: 0.85)"}, {"name": "惠州", "value": [114.41, 23.11, 0.85], "info": "广东省惠州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "江门", "value": [113.08, 22.58, 0.85], "info": "广东省江门 (城市分类: 2-2, 系数: 0.85)"}, {"name": "兰州", "value": [103.84, 36.06, 0.85], "info": "甘肃省兰州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "厦门", "value": [118.09, 24.48, 0.85], "info": "福建省厦门 (城市分类: 2-2, 系数: 0.85)"}, {"name": "福州", "value": [119.3, 26.07, 0.85], "info": "福建省福州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "泉州", "value": [118.67, 24.87, 0.85], "info": "福建省泉州 (城市分类: 2-2, 系数: 0.85)"}, {"name": "合肥", "value": [117.23, 31.82, 0.85], "info": "安徽省合肥 (城市分类: 2-2, 系数: 0.85)"}, {"name": "台州", "value": [121.42, 28.66, 0.8], "info": "浙江省台州 (城市分类: 3, 系数: 0.80)"}, {"name": "舟山", "value": [122.1, 30.01, 0.8], "info": "浙江省舟山 (城市分类: 3, 系数: 0.80)"}, {"name": "大理", "value": [100.27, 25.61, 0.8], "info": "云南省大理 (城市分类: 3, 系数: 0.80)"}, {"name": "西双版纳", "value": [100.8, 22.0, 0.8], "info": "云南省西双版纳 (城市分类: 3, 系数: 0.80)"}, {"name": "红河", "value": [103.38, 23.36, 0.8], "info": "云南省红河 (城市分类: 3, 系数: 0.80)"}, {"name": "喀什", "value": [75.99, 39.47, 0.8], "info": "新疆维吾尔自治区喀什 (城市分类: 3, 系数: 0.80)"}, {"name": "霍尔果斯", "value": [80.41, 44.21, 0.8], "info": "新疆维吾尔自治区霍尔果斯 (城市分类: 3, 系数: 0.80)"}, {"name": "绵阳", "value": [104.68, 31.47, 0.8], "info": "四川省绵阳 (城市分类: 3, 系数: 0.80)"}, {"name": "宜宾", "value": [104.64, 28.75, 0.8], "info": "四川省宜宾 (城市分类: 3, 系数: 0.80)"}, {"name": "乐山", "value": [103.76, 29.55, 0.8], "info": "四川省乐山 (城市分类: 3, 系数: 0.80)"}, {"name": "咸阳", "value": [108.71, 34.33, 0.8], "info": "陕西省咸阳 (城市分类: 3, 系数: 0.80)"}, {"name": "宝鸡", "value": [107.15, 34.36, 0.8], "info": "陕西省宝鸡 (城市分类: 3, 系数: 0.80)"}, {"name": "榆林", "value": [109.73, 38.28, 0.8], "info": "陕西省榆林 (城市分类: 3, 系数: 0.80)"}, {"name": "临汾", "value": [111.52, 36.08, 0.8], "info": "山西省临汾 (城市分类: 3, 系数: 0.80)"}, {"name": "大同", "value": [113.3, 40.08, 0.8], "info": "山西省大同 (城市分类: 3, 系数: 0.80)"}, {"name": "运城", "value": [111.0, 35.03, 0.8], "info": "山西省运城 (城市分类: 3, 系数: 0.80)"}, {"name": "威海", "value": [122.42, 37.51, 0.8], "info": "山东省威海 (城市分类: 3, 系数: 0.80)"}, {"name": "日照", "value": [119.53, 35.42, 0.8], "info": "山东省日照 (城市分类: 3, 系数: 0.80)"}, {"name": "泰安", "value": [117.08, 36.19, 0.8], "info": "山东省泰安 (城市分类: 3, 系数: 0.80)"}, {"name": "烟台", "value": [121.39, 37.54, 0.8], "info": "山东省烟台 (城市分类: 3, 系数: 0.80)"}, {"name": "临沂", "value": [118.36, 35.05, 0.8], "info": "山东省临沂 (城市分类: 3, 系数: 0.80)"}, {"name": "淄博", "value": [118.06, 36.81, 0.8], "info": "山东省淄博 (城市分类: 3, 系数: 0.80)"}, {"name": "德州", "value": [116.36, 37.43, 0.8], "info": "山东省德州 (城市分类: 3, 系数: 0.80)"}, {"name": "潍坊", "value": [119.16, 36.71, 0.8], "info": "山东省潍坊 (城市分类: 3, 系数: 0.80)"}, {"name": "济宁", "value": [116.59, 35.41, 0.8], "info": "山东省济宁 (城市分类: 3, 系数: 0.80)"}, {"name": "包头", "value": [109.84, 40.66, 0.8], "info": "内蒙古自治区包头 (城市分类: 3, 系数: 0.80)"}, {"name": "赤峰", "value": [118.88, 42.26, 0.8], "info": "内蒙古自治区赤峰 (城市分类: 3, 系数: 0.80)"}, {"name": "呼伦贝尔", "value": [119.76, 49.21, 0.8], "info": "内蒙古自治区呼伦贝尔 (城市分类: 3, 系数: 0.80)"}, {"name": "鄂尔多斯", "value": [109.99, 39.61, 0.8], "info": "内蒙古自治区鄂尔多斯 (城市分类: 3, 系数: 0.80)"}, {"name": "营口", "value": [122.23, 40.66, 0.8], "info": "辽宁省营口 (城市分类: 3, 系数: 0.80)"}, {"name": "锦州", "value": [121.12, 41.09, 0.8], "info": "辽宁省锦州 (城市分类: 3, 系数: 0.80)"}, {"name": "鞍山", "value": [122.99, 41.11, 0.8], "info": "辽宁省鞍山 (城市分类: 3, 系数: 0.80)"}, {"name": "九江", "value": [116.0, 29.7, 0.8], "info": "江西省九江 (城市分类: 3, 系数: 0.80)"}, {"name": "赣州", "value": [114.93, 25.83, 0.8], "info": "江西省赣州 (城市分类: 3, 系数: 0.80)"}, {"name": "上饶", "value": [117.94, 28.45, 0.8], "info": "江西省上饶 (城市分类: 3, 系数: 0.80)"}, {"name": "景德镇", "value": [117.18, 29.27, 0.8], "info": "江西省景德镇 (城市分类: 3, 系数: 0.80)"}, {"name": "徐州", "value": [117.18, 34.26, 0.8], "info": "江苏省徐州 (城市分类: 3, 系数: 0.80)"}, {"name": "扬州", "value": [119.41, 32.4, 0.8], "info": "江苏省扬州 (城市分类: 3, 系数: 0.80)"}, {"name": "如皋", "value": [120.57, 32.39, 0.8], "info": "江苏省如皋 (城市分类: 3, 系数: 0.80)"}, {"name": "盐城", "value": [120.16, 33.35, 0.8], "info": "江苏省盐城 (城市分类: 3, 系数: 0.80)"}, {"name": "吉林", "value": [126.55, 43.84, 0.8], "info": "吉林省吉林 (城市分类: 3, 系数: 0.80)"}, {"name": "延边", "value": [129.51, 42.9, 0.8], "info": "吉林省延边 (城市分类: 3, 系数: 0.80)"}, {"name": "张家界", "value": [110.48, 29.12, 0.8], "info": "湖南省张家界 (城市分类: 3, 系数: 0.80)"}, {"name": "衡阳", "value": [112.57, 26.9, 0.8], "info": "湖南省衡阳 (城市分类: 3, 系数: 0.80)"}, {"name": "郴州", "value": [113.01, 25.77, 0.8], "info": "湖南省郴州 (城市分类: 3, 系数: 0.80)"}, {"name": "株洲", "value": [113.13, 27.83, 0.8], "info": "湖南省株洲 (城市分类: 3, 系数: 0.80)"}, {"name": "岳阳", "value": [113.13, 29.37, 0.8], "info": "湖南省岳阳 (城市分类: 3, 系数: 0.80)"}, {"name": "常德", "value": [111.69, 29.03, 0.8], "info": "湖南省常德 (城市分类: 3, 系数: 0.80)"}, {"name": "襄阳", "value": [112.12, 32.01, 0.8], "info": "湖北省襄阳 (城市分类: 3, 系数: 0.80)"}, {"name": "宜昌", "value": [111.29, 30.69, 0.8], "info": "湖北省宜昌 (城市分类: 3, 系数: 0.80)"}, {"name": "十堰", "value": [110.79, 32.62, 0.8], "info": "湖北省十堰 (城市分类: 3, 系数: 0.80)"}, {"name": "荆州", "value": [112.24, 30.33, 0.8], "info": "湖北省荆州 (城市分类: 3, 系数: 0.80)"}, {"name": "黄石", "value": [115.04, 30.2, 0.8], "info": "湖北省黄石 (城市分类: 3, 系数: 0.80)"}, {"name": "恩施", "value": [109.48, 30.28, 0.8], "info": "湖北省恩施 (城市分类: 3, 系数: 0.80)"}, {"name": "齐齐哈尔", "value": [123.92, 47.35, 0.8], "info": "黑龙江省齐齐哈尔 (城市分类: 3, 系数: 0.80)"}, {"name": "洛阳", "value": [112.45, 34.62, 0.8], "info": "河南省洛阳 (城市分类: 3, 系数: 0.80)"}, {"name": "信阳", "value": [114.09, 32.15, 0.8], "info": "河南省信阳 (城市分类: 3, 系数: 0.80)"}, {"name": "南阳", "value": [112.53, 33.0, 0.8], "info": "河南省南阳 (城市分类: 3, 系数: 0.80)"}, {"name": "开封", "value": [114.31, 34.79, 0.8], "info": "河南省开封 (城市分类: 3, 系数: 0.80)"}, {"name": "平顶山", "value": [113.31, 33.74, 0.8], "info": "河南省平顶山 (城市分类: 3, 系数: 0.80)"}, {"name": "新乡", "value": [113.91, 35.3, 0.8], "info": "河南省新乡 (城市分类: 3, 系数: 0.80)"}, {"name": "漯河", "value": [114.02, 33.58, 0.8], "info": "河南省漯河 (城市分类: 3, 系数: 0.80)"}, {"name": "安阳", "value": [114.39, 36.1, 0.8], "info": "河南省安阳 (城市分类: 3, 系数: 0.80)"}, {"name": "驻马店", "value": [114.02, 32.98, 0.8], "info": "河南省驻马店 (城市分类: 3, 系数: 0.80)"}, {"name": "周口", "value": [114.65, 33.62, 0.8], "info": "河南省周口 (城市分类: 3, 系数: 0.80)"}, {"name": "商丘", "value": [115.66, 34.41, 0.8], "info": "河南省商丘 (城市分类: 3, 系数: 0.80)"}, {"name": "秦皇岛", "value": [119.52, 39.88, 0.8], "info": "河北省秦皇岛 (城市分类: 3, 系数: 0.80)"}, {"name": "唐山", "value": [118.18, 39.63, 0.8], "info": "河北省唐山 (城市分类: 3, 系数: 0.80)"}, {"name": "廊坊", "value": [116.68, 39.54, 0.8], "info": "河北省廊坊 (城市分类: 3, 系数: 0.80)"}, {"name": "保定", "value": [115.46, 38.87, 0.8], "info": "河北省保定 (城市分类: 3, 系数: 0.80)"}, {"name": "承德", "value": [117.96, 40.95, 0.8], "info": "河北省承德 (城市分类: 3, 系数: 0.80)"}, {"name": "张家口", "value": [114.89, 40.77, 0.8], "info": "河北省张家口 (城市分类: 3, 系数: 0.80)"}, {"name": "邯郸", "value": [114.54, 36.63, 0.8], "info": "河北省邯郸 (城市分类: 3, 系数: 0.80)"}, {"name": "遵义", "value": [106.93, 27.73, 0.8], "info": "贵州省遵义 (城市分类: 3, 系数: 0.80)"}, {"name": "黔东南", "value": [107.98, 26.58, 0.8], "info": "贵州省黔东南 (城市分类: 3, 系数: 0.80)"}, {"name": "桂林", "value": [110.29, 25.27, 0.8], "info": "广西壮族自治区桂林 (城市分类: 3, 系数: 0.80)"}, {"name": "柳州", "value": [109.42, 24.33, 0.8], "info": "广西壮族自治区柳州 (城市分类: 3, 系数: 0.80)"}, {"name": "北海", "value": [109.12, 21.47, 0.8], "info": "广西壮族自治区北海 (城市分类: 3, 系数: 0.80)"}, {"name": "东兴", "value": [108.11, 21.55, 0.8], "info": "广西壮族自治区东兴 (城市分类: 3, 系数: 0.80)"}, {"name": "汕头", "value": [116.68, 23.35, 0.8], "info": "广东省汕头 (城市分类: 3, 系数: 0.80)"}, {"name": "湛江", "value": [110.36, 21.26, 0.8], "info": "广东省湛江 (城市分类: 3, 系数: 0.80)"}, {"name": "清远", "value": [113.06, 23.68, 0.8], "info": "广东省清远 (城市分类: 3, 系数: 0.80)"}, {"name": "肇庆", "value": [112.47, 23.05, 0.8], "info": "广东省肇庆 (城市分类: 3, 系数: 0.80)"}, {"name": "漳州", "value": [117.65, 24.51, 0.8], "info": "福建省漳州 (城市分类: 3, 系数: 0.80)"}, {"name": "黄山", "value": [118.33, 29.71, 0.8], "info": "安徽省黄山 (城市分类: 3, 系数: 0.80)"}, {"name": "芜湖", "value": [118.38, 31.33, 0.8], "info": "安徽省芜湖 (城市分类: 3, 系数: 0.80)"}, {"name": "阜阳", "value": [115.81, 32.89, 0.8], "info": "安徽省阜阳 (城市分类: 3, 系数: 0.80)"},{"name": "重庆永州", "value": [106.9, 29.56, 0.75], "info": "重庆重庆永州 (城市分类: 2-1, 系数: 0.75)"},  {"name": "威海（远程）", "value": [122.12, 37.51, 0.7], "info": "山东省威海（远程） (城市分类: 远程, 系数: 0.70)"}, {"name": "赤壁", "value": [113.9, 29.71, 0.65], "info": "湖北省赤壁（远程） (城市分类: 远程, 系数: 0.65)"}, {"name": "牡丹江", "value": [129.62, 44.55, 0.65], "info": "黑龙江省牡丹江（远程） (城市分类: 远程, 系数: 0.65)"}, {"name": "穆棱", "value": [130.52, 44.92, 0.65], "info": "黑龙江省穆棱（远程） (城市分类: 远程, 系数: 0.65)"}, {"name": "信阳", "value": [114.09, 32.15, 0.65], "info": "河南省信阳（远程） (城市分类: 远程, 系数: 0.65)"}];
+
+        data.forEach(item => {
+            let parts = item.info.split(' (城市分类: ');
+            let provCity = parts[0];
+            let prov = provCity.replace(item.name, '');
+            if (!prov) prov = item.name; 
+            
+            let catCoef = parts[1].split(', 系数: ');
+            
+            item._prov = prov;
+            item._cat = catCoef[0];
+            item._coef = parseFloat(item.value[2]);
+        });
+
+        data.sort((a, b) => {
+            if (b._coef !== a._coef) {
+                return b._coef - a._coef;
+            }
+            return a._prov.localeCompare(b._prov, 'zh-Hans-CN');
+        });
+
+        function getColor(v) {
+            if (v >= 1.0) return '#ef4444'; 
+            if (v >= 0.9) return '#f59e0b';
+            if (v >= 0.85) return '#fbbf24';
+            if (v >= 0.8) return '#3b82f6';
+            return '#1e3a8a';
+        }
+
+        var tbody = document.getElementById('tableBody');
+        data.forEach((item, index) => {
+            let tr = document.createElement('tr');
+            tr.id = 'row-' + index;
+            let color = getColor(item._coef);
+            tr.innerHTML = `
+                <td><span class="color-dot" style="background:${color};"></span>${item._prov}</td>
+                <td>${item.name}</td>
+                <td>${item._cat}</td>
+                <td>${item._coef.toFixed(2)}</td>
+            `;
+            
+            // 【修改】改为点击事件，点击触发高亮并自动在地图展示弹窗，减少页面高频重绘防卡顿
+          tr.addEventListener('mouseenter', () => {
+                // 取消所有其他行的选中样式
+                document.querySelectorAll('.active-row').forEach(el => el.classList.remove('active-row'));
+                tr.classList.add('active-row');
+                
+                // 先清除地图上的所有高亮和提示框，防止重叠残留
+                myChart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+                myChart.dispatchAction({ type: 'hideTip' });
+                
+                // 精确触发当前对应散点的高亮（放大）和提示框
+                myChart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: index });
+                myChart.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: index });
+            });
+            
+            tbody.appendChild(tr);
+        });
+
+        var option = {
+            tooltip: {
+                show: true,
+                trigger: 'item',
+                formatter: function (params) {
+                    if (params.seriesType === 'scatter' && params.data) {
+                        return params.data.info;
+                    }
+                }
+            },
+            visualMap: {
+                min: 0.65, max: 1.00, precision: 2, calculable: true,
+                inRange: { color: ['#1e3a8a', '#3b82f6', '#fbbf24', '#ef4444'] },
+                textStyle: { color: '#333' },
+                left: '2%', bottom: '5%' 
+            },
+            geo: {
+                map: 'china',
+                roam: true,
+                tooltip: { show: false }, 
+                label: { show: true, color: '#999' }, 
+                itemStyle: { areaColor: '#eaeaea', borderColor: '#ccc' },
+                emphasis: { 
+                    itemStyle: { areaColor: '#d4d4d4' },
+                    label: { show: true, color: '#666' } 
+                }
+            },
+            series: [
+                {
+                    name: '具体信息',
+                    type: 'scatter',  
+                    coordinateSystem: 'geo',
+                    data: data, 
+                    symbolSize: 12,   
+                    itemStyle: { opacity: 0.8 },
+                            tooltip: {
+                                show: true
+                            }
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+        
+        // 地图点位鼠标悬停 -> 联动左侧表格行高亮并自动滚动居中
+        myChart.on('mouseover', function(e) {
+            if (e.seriesType === 'scatter') {
+                let row = document.getElementById('row-' + e.dataIndex);
+                if (row) {
+                    // 悬停地图时，清除表格中之前点亮的行，点亮当前行
+                    document.querySelectorAll('.active-row').forEach(el => el.classList.remove('active-row'));
+                    row.classList.add('active-row');
+                    
+                    // 【修改】block 参数由 'nearest' 改为 'center'，表格自动滚动使被选行处于正中间
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+        
+        // 地图点位鼠标移出 -> 表格解除选中高亮
+        myChart.on('mouseout', function(e) {
+            if (e.seriesType === 'scatter') {
+                let row = document.getElementById('row-' + e.dataIndex);
+                if (row) row.classList.remove('active-row');
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+</body>
+</html>
